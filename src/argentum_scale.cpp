@@ -1,5 +1,4 @@
 #include <HX711.h>
-#include <ArduinoSTL.h>
 #include <vector>
 
 const int ONBOARD_LED_PIN = 13;
@@ -46,6 +45,7 @@ bool refresh_weights() {
   // TODO: stub for now. replace with actual API call
   allowed_weights.clear();
   allowed_weights = {500};
+  return true;
 }
 
 bool weight_is_valid(float weight) {
@@ -93,12 +93,14 @@ void handle_weight_refresh() {
   Serial.print("Time since refresh: ");
   Serial.println(time_since_refresh);
   if (last_refreshed == 0 || time_since_refresh > REFRESH_PERIOD_MILLIS) {
+    Serial.println("Refresh needed!");
     // keep looping until weight refresh succeeds
     while (true) {
       bool success = refresh_weights();
       if (success) {
-          Serial.print("Successfully refreshed weights! First weight, size:");
+          Serial.print("Successfully refreshed weights! (first weight | array size): ");
           Serial.print(allowed_weights[0]);
+          Serial.print(" | ");
           Serial.println(allowed_weights.size());
           last_refreshed = millis();
           Serial.print("Last refresh time set to: ");
@@ -131,6 +133,7 @@ void setup() {
   init_scale();
 }
 
+
 void loop() {
   Serial.print("Begin loop. Timestamp: ");
   Serial.println(millis());
@@ -147,12 +150,12 @@ void loop() {
   handle_weight_refresh();
 
   // set lock indicator PIN
-  bool is_locked = allowed_weights.size() == 0;
+  bool is_locked = allowed_weights.size() == 1;
   digitalWrite(LOCK_INDICATOR_PIN, is_locked);
 
   // check if weight is valid; if not, alert
   bool weight_is_valid = check_and_validate_weight();
-  digitalWrite(ALERT_PIN, weight_is_valid);
+  digitalWrite(ALERT_PIN, !weight_is_valid);
 
   delay(1000);
 }
