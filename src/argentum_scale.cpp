@@ -2,6 +2,7 @@
 #include <vector>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <ArduinoJson.h>
 
 // MCU pin config
 const int ONBOARD_LED_PIN = 13;
@@ -19,29 +20,38 @@ const float WEIGHT_ERROR_MARGIN = 10; // in grams
 // wifi config
 const char* ssid = "Adrian's WiFi";
 const char* password = "mahogany648";
-const char* host = "example.com";
+const char* host = "us-east4-argentum-397607.cloudfunctions.net";
 const int https_port = 443;
 const char* root_cert = R"EOF(-----BEGIN CERTIFICATE-----
-MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh
-MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
-d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD
-QTAeFw0wNjExMTAwMDAwMDBaFw0zMTExMTAwMDAwMDBaMGExCzAJBgNVBAYTAlVT
-MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j
-b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IENBMIIBIjANBgkqhkiG
-9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4jvhEXLeqKTTo1eqUKKPC3eQyaKl7hLOllsB
-CSDMAZOnTjC3U/dDxGkAV53ijSLdhwZAAIEJzs4bg7/fzTtxRuLWZscFs3YnFo97
-nh6Vfe63SKMI2tavegw5BmV/Sl0fvBf4q77uKNd0f3p4mVmFaG5cIzJLv07A6Fpt
-43C/dxC//AH2hdmoRBBYMql1GNXRor5H4idq9Joz+EkIYIvUX7Q6hL+hqkpMfT7P
-T19sdl6gSzeRntwi5m3OFBqOasv+zbMUZBfHWymeMr/y7vrTC0LUq7dBMtoM1O/4
-gdW7jVg/tRvoSSiicNoxBN33shbyTApOB6jtSj1etX+jkMOvJwIDAQABo2MwYTAO
-BgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUA95QNVbR
-TLtm8KPiGxvDl7I90VUwHwYDVR0jBBgwFoAUA95QNVbRTLtm8KPiGxvDl7I90VUw
-DQYJKoZIhvcNAQEFBQADggEBAMucN6pIExIK+t1EnE9SsPTfrgT1eXkIoyQY/Esr
-hMAtudXH/vTBH1jLuG2cenTnmCmrEbXjcKChzUyImZOMkXDiqw8cvpOp/2PV5Adg
-06O/nVsJ8dWO41P0jmP6P6fbtGbfYmbW0W5BjfIttep3Sp+dWOIrWcBAI+0tKIJF
-PnlUkiaY4IBIqDfv8NZ5YBberOgOzW6sRBc4L0na4UU+Krk2U886UAb3LujEV0ls
-YSEY1QSteDwsOoBrp+uvFRTp2InBuThs4pFsiv9kuXclVzDAGySj4dzp30d8tbQk
-CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=
+MIIFVzCCAz+gAwIBAgINAgPlk28xsBNJiGuiFzANBgkqhkiG9w0BAQwFADBHMQsw
+CQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEU
+MBIGA1UEAxMLR1RTIFJvb3QgUjEwHhcNMTYwNjIyMDAwMDAwWhcNMzYwNjIyMDAw
+MDAwWjBHMQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZp
+Y2VzIExMQzEUMBIGA1UEAxMLR1RTIFJvb3QgUjEwggIiMA0GCSqGSIb3DQEBAQUA
+A4ICDwAwggIKAoICAQC2EQKLHuOhd5s73L+UPreVp0A8of2C+X0yBoJx9vaMf/vo
+27xqLpeXo4xL+Sv2sfnOhB2x+cWX3u+58qPpvBKJXqeqUqv4IyfLpLGcY9vXmX7w
+Cl7raKb0xlpHDU0QM+NOsROjyBhsS+z8CZDfnWQpJSMHobTSPS5g4M/SCYe7zUjw
+TcLCeoiKu7rPWRnWr4+wB7CeMfGCwcDfLqZtbBkOtdh+JhpFAz2weaSUKK0Pfybl
+qAj+lug8aJRT7oM6iCsVlgmy4HqMLnXWnOunVmSPlk9orj2XwoSPwLxAwAtcvfaH
+szVsrBhQf4TgTM2S0yDpM7xSma8ytSmzJSq0SPly4cpk9+aCEI3oncKKiPo4Zor8
+Y/kB+Xj9e1x3+naH+uzfsQ55lVe0vSbv1gHR6xYKu44LtcXFilWr06zqkUspzBmk
+MiVOKvFlRNACzqrOSbTqn3yDsEB750Orp2yjj32JgfpMpf/VjsPOS+C12LOORc92
+wO1AK/1TD7Cn1TsNsYqiA94xrcx36m97PtbfkSIS5r762DL8EGMUUXLeXdYWk70p
+aDPvOmbsB4om3xPXV2V4J95eSRQAogB/mqghtqmxlbCluQ0WEdrHbEg8QOB+DVrN
+VjzRlwW5y0vtOUucxD/SVRNuJLDWcfr0wbrM7Rv1/oFB2ACYPTrIrnqYNxgFlQID
+AQABo0IwQDAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4E
+FgQU5K8rJnEaK0gnhS9SZizv8IkTcT4wDQYJKoZIhvcNAQEMBQADggIBAJ+qQibb
+C5u+/x6Wki4+omVKapi6Ist9wTrYggoGxval3sBOh2Z5ofmmWJyq+bXmYOfg6LEe
+QkEzCzc9zolwFcq1JKjPa7XSQCGYzyI0zzvFIoTgxQ6KfF2I5DUkzps+GlQebtuy
+h6f88/qBVRRiClmpIgUxPoLW7ttXNLwzldMXG+gnoot7TiYaelpkttGsN/H9oPM4
+7HLwEXWdyzRSjeZ2axfG34arJ45JK3VmgRAhpuo+9K4l/3wV3s6MJT/KYnAK9y8J
+ZgfIPxz88NtFMN9iiMG1D53Dn0reWVlHxYciNuaCp+0KueIHoI17eko8cdLiA6Ef
+MgfdG+RCzgwARWGAtQsgWSl4vflVy2PFPEz0tv/bal8xa5meLMFrUKTX5hgUvYU/
+Z6tGn6D/Qqc6f1zLXbBwHSs09dR2CQzreExZBfMzQsNhFRAbd03OIozUhfJFfbdT
+6u9AWpQKXCBfTkBdYiJ23//OYb2MI3jSNwLgjt7RETeJ9r/tSQdirpLsQBqvFAnZ
+0E6yove+7u7Y/9waLd64NnHi/Hm3lCXRSHNboTXns5lndcEZOitHTtNCjv0xyBZm
+2tIMPNuzjsmhDYAPexZ3FL//2wmUspO8IFgV6dtxQ/PeEMMA3KgqlbbC1j+Qa3bb
+bP6MvPJwNQzcmRk13NfIRmPVNnGuV/u3gm3c
 -----END CERTIFICATE-----
 )EOF";
 
@@ -74,13 +84,6 @@ void calibrate_scale() {
     Serial.println(calibration_factor, 3);
 }
 
-bool refresh_weights() {
-    // TODO: stub for now. replace with actual API call
-    allowed_weights.clear();
-    allowed_weights = {313};
-    return true;
-}
-
 bool weight_is_valid(float weight) {
     for (const int &value : allowed_weights) {
         int low_bound = value - WEIGHT_ERROR_MARGIN;
@@ -90,6 +93,60 @@ bool weight_is_valid(float weight) {
         }
     }
     return false;
+}
+
+bool refresh_weights() {
+    WiFiClientSecure client;
+    client.setCACert(root_cert);
+
+    Serial.print("Connecting to ");
+    Serial.println(host);
+
+    if (!client.connect(host, https_port)) {
+        Serial.println("Connection failed!");
+        return false;
+    }
+    Serial.println("Connection succeeded!");
+
+    String url = "/get_allowed_weights";
+    client.println("GET " + url + " HTTP/1.1");
+    client.println(String("Host: ") + host);
+    client.println("User-Agent: ESP32");
+    client.println("Connection: close");
+    client.println();
+
+    while (client.connected()) {
+        String line = client.readStringUntil('\n');
+        if (line == "\r") {
+            break;
+        }
+    }
+
+    // get json response
+    String json_response = client.readString();
+    Serial.println("JSON response: " + json_response);
+
+    StaticJsonDocument<1000> doc;
+    DeserializationError error = deserializeJson(doc, json_response);
+
+    if (error) {
+        Serial.print("deserializeJson() failed: ");
+        Serial.println(error.c_str());
+        return false;
+    }
+    Serial.println("Successfully deserialized json!");
+
+    JsonObject data = doc["data"];
+    JsonArray weights = data["weights"].as<JsonArray>();
+
+    allowed_weights.clear();
+    for (int weight: weights) {
+        allowed_weights.push_back(weight);
+    }
+
+    client.stop();
+    Serial.println("Connection closed.");
+    return true;
 }
 
 bool check_and_validate_weight(bool recheck = false) {
@@ -158,41 +215,6 @@ void init_wifi() {
     Serial.println("Successfully connected to WiFi!");
 }
 
-void get_allowed_weights() {
-    WiFiClientSecure client;
-    client.setCACert(root_cert);
-
-    Serial.print("Connecting to ");
-    Serial.println(host);
-
-    if (!client.connect(host, https_port)) {
-        Serial.println("Connection failed!");
-        return;
-    }
-    Serial.println("Connection succeeded!");
-
-    String url = "/";
-    client.println("GET " + url + " HTTP/1.1");
-    client.println(String("Host: ") + host);
-    client.println("User-Agent: ESP32");
-    client.println("Connection: close");
-    client.println();
-
-    while (client.connected()) {
-        String line = client.readStringUntil('\n');
-        if (line == "\r") {
-            break;
-        }
-    }
-
-    // Print response
-    String line = client.readString();
-    Serial.println("Client response: " + line);
-
-    client.stop();
-    Serial.println("Connection closed.");
-}
-
 
 void setup() {
     Serial.begin(115200);
@@ -211,20 +233,14 @@ void setup() {
 
     // prepare scale
     init_scale();
-
-    // tmp
-    get_allowed_weights();
 }
+
 
 void loop() {
-    Serial.println("stub...");
-    delay(1000);
-}
-
-
-void looptmp() {
+    Serial.println();
     Serial.print("Begin loop. Timestamp: ");
     Serial.println(millis());
+    Serial.println();
 
     // check pins
     Serial.print("ONBOARD LED PIN: ");
