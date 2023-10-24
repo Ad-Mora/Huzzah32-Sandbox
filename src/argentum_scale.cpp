@@ -55,9 +55,14 @@ bP6MvPJwNQzcmRk13NfIRmPVNnGuV/u3gm3c
 -----END CERTIFICATE-----
 )EOF";
 
+// alert config
+const int WARNING_ALERT_TIME = 20 * 1000;
+
 HX711 scale;
 std::vector<int> allowed_weights;
 unsigned long last_refreshed = 0;
+bool last_weight_is_valid = true;
+unsigned long alert_start = 0;
 
 
 void calibrate_scale() {
@@ -215,6 +220,65 @@ void init_wifi() {
     Serial.println("Successfully connected to WiFi!");
 }
 
+void play_warning() {
+    for (int i = 0; i < 2; ++i) {
+        tone(ALERT_PIN, 523, 200); // C5
+        tone(ALERT_PIN, 0, 300);
+        tone(ALERT_PIN, 523, 200); // C5
+        delay(2200);
+    }
+}
+
+void play_full_alert() {
+    for (int i = 0; i < 10; ++i) {
+        tone(ALERT_PIN, 740, 250); // Fs5
+        tone(ALERT_PIN, 523, 250); // C5
+        delay(500);
+    }
+}
+
+void play_valid_weight() {
+    tone(ALERT_PIN, 523, 100); // C5
+    tone(ALERT_PIN, 1046, 100); // C6
+}
+
+void handle_alert(bool weight_is_valid, bool is_transition) {
+    if (!weight_is_valid) {
+        unsigned long time_since_alert_start = millis() - alert_start;
+        Serial.println("Time since alert start: " + String(time_since_alert_start));
+        if (time_since_alert_start > WARNING_ALERT_TIME) {
+            Serial.println("Playing full alert...");
+            play_full_alert();
+        } else {
+            Serial.println("Playing warning alert...");
+            play_warning();
+        }
+    } else if (is_transition && weight_is_valid) {
+        Serial.println("Playing valid weight alert...");
+        play_valid_weight();
+    }
+}
+
+void handle_weight_check_and_alert() {
+    // detect transitioning from alert to non-alerting, and vv
+    bool new_weight_is_valid = check_and_validate_weight();
+    bool is_alert_transition = false;
+
+    if (new_weight_is_valid != last_weight_is_valid) {
+        is_alert_transition = true;
+        if (!new_weight_is_valid) {
+            alert_start = millis();
+        }
+    }
+    last_weight_is_valid = new_weight_is_valid;
+
+    Serial.println("new_weight_is_valid: " + String(new_weight_is_valid));
+    Serial.println("is_alert_transition: " + String(is_alert_transition));
+
+    // play alert
+    handle_alert(new_weight_is_valid, is_alert_transition);
+}
+
 
 void setup() {
     Serial.begin(115200);
@@ -257,9 +321,8 @@ void loop() {
     bool is_locked = allowed_weights.size() == 1;
     digitalWrite(LOCK_INDICATOR_PIN, is_locked);
 
-    // check if weight is valid; if not, alert
-    bool weight_is_valid = check_and_validate_weight();
-    digitalWrite(ALERT_PIN, !weight_is_valid);
+    // check the weight and decide whether to alert
+    handle_weight_check_and_alert();
 
-    delay(1000);
+    delay(100);
 }
