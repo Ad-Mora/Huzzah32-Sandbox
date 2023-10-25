@@ -12,10 +12,10 @@ const int ALERT_PIN = 21;
 const int LOCK_INDICATOR_PIN = 33;
 
 // scale config
-const int REFRESH_PERIOD_MILLIS = 30 * 1000; // refresh allowed weights every 30 seconds
+const int REFRESH_PERIOD_MILLIS = 45 * 1000; // refresh allowed weights every 30 seconds
 const float CALIBRATION_FACTOR = 400.7;
 const float CALIBRATION_WEIGHT = 500.0; // in grams
-const float WEIGHT_ERROR_MARGIN = 10; // in grams
+const float WEIGHT_ERROR_MARGIN = 20; // in grams
 
 // wifi config
 const char* ssid = "Adrian's WiFi";
@@ -222,10 +222,10 @@ void init_wifi() {
 
 void play_warning() {
     for (int i = 0; i < 2; ++i) {
-        tone(ALERT_PIN, 523, 200); // C5
+        tone(ALERT_PIN, 587, 200); // D5
         tone(ALERT_PIN, 0, 300);
-        tone(ALERT_PIN, 523, 200); // C5
-        delay(2200);
+        tone(ALERT_PIN, 587, 200); // D5
+        delay(2000);
     }
 }
 
