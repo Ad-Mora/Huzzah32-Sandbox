@@ -56,13 +56,14 @@ bP6MvPJwNQzcmRk13NfIRmPVNnGuV/u3gm3c
 )EOF";
 
 // alert config
-const int WARNING_ALERT_TIME = 20 * 1000;
+const int WARNING_ALERT_TIME = 40 * 1000;
 
 HX711 scale;
 std::vector<int> allowed_weights;
 unsigned long last_refreshed = 0;
 bool last_weight_is_valid = true;
 unsigned long alert_start = 0;
+float last_weight = 0; // for the sake of logging
 
 
 void calibrate_scale() {
@@ -113,7 +114,7 @@ bool refresh_weights() {
     }
     Serial.println("Connection succeeded!");
 
-    String url = "/get_allowed_weights";
+    String url = String("/get_allowed_weights") + "?last_weight=" + String(last_weight, 2);
     client.println("GET " + url + " HTTP/1.1");
     client.println(String("Host: ") + host);
     client.println("User-Agent: ESP32");
@@ -156,6 +157,7 @@ bool refresh_weights() {
 
 bool check_and_validate_weight(bool recheck = false) {
     float weight = scale.get_units(10);
+    last_weight = weight;
     Serial.print("Grams: ");
     Serial.println(weight);
 
@@ -220,13 +222,15 @@ void init_wifi() {
     Serial.println("Successfully connected to WiFi!");
 }
 
-void play_warning() {
-    for (int i = 0; i < 2; ++i) {
-        tone(ALERT_PIN, 587, 200); // D5
-        tone(ALERT_PIN, 0, 300);
-        tone(ALERT_PIN, 587, 200); // D5
-        delay(2000);
-    }
+void play_warning(unsigned long time_since_alert_start) {
+    float warning_elapsed_proportion = min(time_since_alert_start / float(WARNING_ALERT_TIME), 1.0f);
+    int beep_pause_time = 600 * (1 - warning_elapsed_proportion);
+    Serial.print("Delay time: ");
+    Serial.println(beep_pause_time);
+    tone(ALERT_PIN, 587, 200); // D5
+    delay(beep_pause_time);
+    tone(ALERT_PIN, 587, 200); // D5
+    delay(1500);
 }
 
 void play_full_alert() {
@@ -251,7 +255,7 @@ void handle_alert(bool weight_is_valid, bool is_transition) {
             play_full_alert();
         } else {
             Serial.println("Playing warning alert...");
-            play_warning();
+            play_warning(time_since_alert_start);
         }
     } else if (is_transition && weight_is_valid) {
         Serial.println("Playing valid weight alert...");
