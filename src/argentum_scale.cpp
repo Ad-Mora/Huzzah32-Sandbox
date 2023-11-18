@@ -12,10 +12,10 @@ const int ALERT_PIN = 21;
 const int LOCK_INDICATOR_PIN = 33;
 
 // scale config
-const int REFRESH_PERIOD_MILLIS = 45 * 1000; // refresh allowed weights every 30 seconds
+const int REFRESH_PERIOD_MILLIS = 45 * 1000; // refresh allowed weights every x seconds
 const float CALIBRATION_FACTOR = 400.7;
 const float CALIBRATION_WEIGHT = 500.0; // in grams
-const float WEIGHT_ERROR_MARGIN = 20; // in grams
+const float WEIGHT_ERROR_MARGIN = 30; // in grams
 
 // wifi config
 const char* ssid = "Adrian's WiFi";
@@ -56,7 +56,8 @@ bP6MvPJwNQzcmRk13NfIRmPVNnGuV/u3gm3c
 )EOF";
 
 // alert config
-const int WARNING_ALERT_TIME = 40 * 1000;
+const int WARNING_ALERT_TIME = 75 * 1000;
+const int WARNING_ALERT_DELAY = 10 * 1000;
 
 HX711 scale;
 std::vector<int> allowed_weights;
@@ -64,6 +65,7 @@ unsigned long last_refreshed = 0;
 bool last_weight_is_valid = true;
 unsigned long alert_start = 0;
 float last_weight = 0; // for the sake of logging
+unsigned long last_warning_alert_time = 0;
 
 
 void calibrate_scale() {
@@ -225,14 +227,7 @@ void init_wifi() {
 }
 
 void play_warning(unsigned long time_since_alert_start) {
-    float warning_elapsed_proportion = min(time_since_alert_start / float(WARNING_ALERT_TIME), 1.0f);
-    int beep_pause_time = 600 * (1 - warning_elapsed_proportion);
-    Serial.print("Delay time: ");
-    Serial.println(beep_pause_time);
     tone(ALERT_PIN, 587, 200); // D5
-    delay(beep_pause_time);
-    tone(ALERT_PIN, 587, 200); // D5
-    delay(1500);
 }
 
 void play_full_alert() {
@@ -251,17 +246,22 @@ void play_valid_weight() {
 void handle_alert(bool weight_is_valid, bool is_transition) {
     if (!weight_is_valid) {
         unsigned long time_since_alert_start = millis() - alert_start;
+        unsigned long time_since_last_warning = millis() - last_warning_alert_time;
         Serial.println("Time since alert start: " + String(time_since_alert_start));
+        Serial.println("Last warning alert time: " + String(last_warning_alert_time));
+        Serial.println("Time since last warning: " + String(time_since_last_warning));
         if (time_since_alert_start > WARNING_ALERT_TIME) {
             Serial.println("Playing full alert...");
             play_full_alert();
-        } else {
+        } else if (time_since_last_warning > WARNING_ALERT_DELAY) {
             Serial.println("Playing warning alert...");
             play_warning(time_since_alert_start);
+            last_warning_alert_time = millis();
         }
     } else if (is_transition && weight_is_valid) {
         Serial.println("Playing valid weight alert...");
         play_valid_weight();
+        last_warning_alert_time = 0;
     }
 }
 
