@@ -12,8 +12,8 @@ const int ALERT_PIN = 21;
 const int LOCK_INDICATOR_PIN = 33;
 
 // scale config
-const int REFRESH_PERIOD_MILLIS = 45 * 1000; // refresh allowed weights every x seconds
-const float CALIBRATION_FACTOR = 400.7;
+const int REFRESH_PERIOD_MILLIS = 30 * 1000; // refresh allowed weights every x seconds
+const float CALIBRATION_FACTOR = 418.5;
 const float CALIBRATION_WEIGHT = 500.0; // in grams
 const float WEIGHT_ERROR_MARGIN = 30; // in grams
 
@@ -58,14 +58,15 @@ bP6MvPJwNQzcmRk13NfIRmPVNnGuV/u3gm3c
 // alert config
 const int WARNING_ALERT_TIME = 75 * 1000;
 const int WARNING_ALERT_DELAY = 10 * 1000;
+const int SOFT_WARNING_ALERT_CUTOFF = 25 * 1000; // before this time, play softer warning
 
 HX711 scale;
 std::vector<int> allowed_weights;
-unsigned long last_refreshed = 0;
+uint64_t last_refreshed = 0;
 bool last_weight_is_valid = true;
-unsigned long alert_start = 0;
+uint64_t alert_start = 0;
 float last_weight = 0; // for the sake of logging
-unsigned long last_warning_alert_time = 0;
+uint64_t last_warning_alert_time = 0;
 
 
 void calibrate_scale() {
@@ -188,7 +189,7 @@ void init_scale() {
  * enough time has passed since the last update.
 */
 void handle_weight_refresh() {
-    unsigned long time_since_refresh = millis() - last_refreshed;
+    uint64_t time_since_refresh = millis() - last_refreshed;
     Serial.print("Time since refresh: ");
     Serial.println(time_since_refresh);
     if (last_refreshed == 0 || time_since_refresh > REFRESH_PERIOD_MILLIS) {
@@ -226,8 +227,12 @@ void init_wifi() {
     digitalWrite(ONBOARD_LED_PIN, LOW);
 }
 
-void play_warning(unsigned long time_since_alert_start) {
-    tone(ALERT_PIN, 587, 200); // D5
+void play_warning(uint64_t time_since_alert_start) {
+    if (time_since_alert_start < SOFT_WARNING_ALERT_CUTOFF) {
+        tone(ALERT_PIN, 294, 120); // D4
+    } else {
+        tone(ALERT_PIN, 587, 200); // D5
+    }
 }
 
 void play_full_alert() {
@@ -245,8 +250,8 @@ void play_valid_weight() {
 
 void handle_alert(bool weight_is_valid, bool is_transition) {
     if (!weight_is_valid) {
-        unsigned long time_since_alert_start = millis() - alert_start;
-        unsigned long time_since_last_warning = millis() - last_warning_alert_time;
+        uint64_t time_since_alert_start = millis() - alert_start;
+        uint64_t time_since_last_warning = millis() - last_warning_alert_time;
         Serial.println("Time since alert start: " + String(time_since_alert_start));
         Serial.println("Last warning alert time: " + String(last_warning_alert_time));
         Serial.println("Time since last warning: " + String(time_since_last_warning));
@@ -285,8 +290,7 @@ void handle_weight_check_and_alert() {
     handle_alert(new_weight_is_valid, is_alert_transition);
 }
 
-
-void setup() {
+void mainSetup() {
     Serial.begin(115200);
     delay(2000);
     Serial.println("Starting setup...");
@@ -305,8 +309,7 @@ void setup() {
     init_scale();
 }
 
-
-void loop() {
+void mainLoop() {
     Serial.println();
     Serial.print("Begin loop. Timestamp: ");
     Serial.println(millis());
@@ -331,4 +334,14 @@ void loop() {
     handle_weight_check_and_alert();
 
     delay(100);
+}
+
+
+void setup() {
+    mainSetup();
+}
+
+
+void loop() {
+    mainLoop();
 }
