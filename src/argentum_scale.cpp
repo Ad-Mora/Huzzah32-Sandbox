@@ -244,8 +244,8 @@ void play_full_alert() {
 }
 
 void play_valid_weight() {
-    tone(ALERT_PIN, 523, 100); // C5
-    tone(ALERT_PIN, 1046, 100); // C6
+    tone(ALERT_PIN, 262, 55); // C4
+    tone(ALERT_PIN, 523, 55); // C5
 }
 
 void handle_alert(bool weight_is_valid, bool is_transition) {

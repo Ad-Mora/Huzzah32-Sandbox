@@ -8,11 +8,13 @@ void setup() {
 
 // In this example, the tone is continuous. You can modify the loop to change tones, add delays, etc.
 void loop() {
-    tone(speakerPin, 523, 3000); // C5
-    tone(speakerPin, 0, 2000);
-    tone(speakerPin, 1046, 3000); // C6
+    tone(speakerPin, 262, 55); // C4
+    tone(speakerPin, 523, 55); // C5
+    delay(3000);
 }
 
+
+// tone(speakerPin, 1046, 100); // C6
 
 // tone(speakerPin, 523, 150); // C5
 // delay(400);
